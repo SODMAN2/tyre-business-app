@@ -33,6 +33,40 @@ def get_database_url():
     return None
 
 
+def get_app_password():
+    try:
+        return st.secrets.get("APP_PASSWORD")
+    except Exception:
+        return None
+
+
+def require_login():
+    app_password = get_app_password()
+
+    if not app_password:
+        st.warning("APP_PASSWORD is missing. The app is not password protected during local development.")
+        return True
+
+    if st.session_state.get("logged_in"):
+        return True
+
+    st.title("Tyre Business App")
+    st.subheader("Password Required")
+
+    with st.form("login_form"):
+        entered_password = st.text_input("Password", type="password")
+        login_clicked = st.form_submit_button("Login")
+
+    if login_clicked:
+        if entered_password == app_password:
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("Incorrect password. Please try again.")
+
+    return False
+
+
 def using_postgres():
     return bool(get_database_url())
 
@@ -2139,10 +2173,18 @@ def show_sales_report():
 
 def main():
     st.set_page_config(page_title="Tyre Business App", layout="wide")
+
+    if not require_login():
+        return
+
     create_tables()
 
     st.title("Tyre Business App")
     st.caption("Simple local stock, sales, and profit tracker")
+
+    if get_app_password() and st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
 
     page = st.sidebar.radio(
         "Choose a page",

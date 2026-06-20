@@ -7,7 +7,7 @@ The app can run in two ways:
 - Local testing: uses `tyre_business.db` SQLite automatically.
 - Online deployment: uses PostgreSQL when `DATABASE_URL` is set in Streamlit secrets or environment variables.
 
-No database password is stored in the code.
+No database password or app password is stored in the code.
 
 ## Files
 
@@ -104,10 +104,11 @@ app.py
 ```
 
 6. Open **Advanced settings**.
-7. Add this secret:
+7. Add these secrets:
 
 ```toml
 DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+APP_PASSWORD = "choose-a-private-password-here"
 ```
 
 8. Deploy the app.
@@ -115,10 +116,11 @@ DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 
 ## Streamlit Secrets
 
-For online deployment, put the database URL in Streamlit Cloud secrets:
+For online deployment, put the database URL and app password in Streamlit Cloud secrets:
 
 ```toml
 DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+APP_PASSWORD = "choose-a-private-password-here"
 ```
 
 This app also supports this format:
@@ -131,6 +133,32 @@ url = "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 For local testing with secrets, create `.streamlit/secrets.toml` on your own computer and add the same value there.
 That file is ignored by Git so the password does not get uploaded.
 
+## App Password
+
+The app uses `APP_PASSWORD` from Streamlit secrets to protect all pages.
+
+When `APP_PASSWORD` is set, users must enter the correct password before they can see:
+
+- Dashboard
+- Add Stock
+- View Stock
+- Search Tyres
+- Record Sale
+- Outstanding Balances
+- Sales Report
+
+After login, the app remembers the user in the browser session, so they do not need to type the password again when changing pages.
+
+To log out, click **Logout** in the sidebar.
+
+For local testing, you can create `.streamlit/secrets.toml`:
+
+```toml
+APP_PASSWORD = "your-local-test-password"
+```
+
+If `APP_PASSWORD` is not set, the app still runs locally but shows a warning that password protection is missing.
+
 ## How The Database Choice Works
 
 - If `DATABASE_URL` exists, the app uses PostgreSQL.
@@ -142,5 +170,5 @@ That file is ignored by Git so the password does not get uploaded.
 
 - `tyre_business.db` is not required for online deployment.
 - Streamlit Community Cloud storage is not a safe permanent place for SQLite data, so online use should use Supabase or Neon PostgreSQL.
-- Never paste database passwords directly into `app.py`.
+- Never paste database passwords or app passwords directly into `app.py`.
 - If you change the app later, push the updated files to GitHub and Streamlit Cloud will redeploy.
