@@ -1127,6 +1127,31 @@ def format_naira(amount):
     return f"₦{round(value):,}"
 
 
+def parse_naira_input(value):
+    if value is None:
+        return 0.0
+
+    text = str(value).strip()
+    if not text:
+        return 0.0
+
+    clean_text = (
+        text.replace("₦", "")
+        .replace("NGN", "")
+        .replace("ngn", "")
+        .replace(",", "")
+        .replace(" ", "")
+    )
+
+    if not re.fullmatch(r"\d+(\.\d+)?", clean_text):
+        return None
+
+    amount = float(clean_text)
+    if amount < 0:
+        return None
+    return amount
+
+
 def format_currency(amount):
     return format_naira(amount)
 
@@ -1239,8 +1264,32 @@ def show_add_stock():
         pattern_model = st.text_input("Pattern / Model", placeholder="Example: AT115")
         condition = st.selectbox("Condition", ["New", "Used", "Retread"])
         quantity = st.number_input("Quantity", min_value=1, step=1)
-        buying_price = st.number_input("Buying price per tyre (₦)", min_value=0.0, step=500.0)
-        selling_price = st.number_input("Selling price per tyre (₦)", min_value=0.0, step=500.0)
+        buying_price_input = st.text_input(
+            "Buying price per tyre",
+            placeholder="Example: 350000, 350,000, or ₦350,000",
+        )
+        selling_price_input = st.text_input(
+            "Selling price per tyre",
+            placeholder="Example: 360000, 360,000, or ₦360,000",
+        )
+        buying_price = parse_naira_input(buying_price_input)
+        selling_price = parse_naira_input(selling_price_input)
+
+        if buying_price is None:
+            st.warning("Enter a valid buying price, for example 350000, 350,000, or ₦350,000.")
+        if selling_price is None:
+            st.warning("Enter a valid selling price, for example 360000, 360,000, or ₦360,000.")
+        if buying_price is not None and selling_price is not None:
+            profit_per_tyre = selling_price - buying_price
+            total_stock_cost = buying_price * int(quantity)
+            total_stock_value = selling_price * int(quantity)
+            st.caption(
+                f"Buying price: {format_naira(buying_price)} | "
+                f"Selling price: {format_naira(selling_price)} | "
+                f"Profit per tyre: {format_naira(profit_per_tyre)} | "
+                f"Total stock cost: {format_naira(total_stock_cost)} | "
+                f"Total stock value: {format_naira(total_stock_value)}"
+            )
         supplier = st.text_input("Supplier", placeholder="Example: Lagos Tyre Market")
         date_added = st.date_input("Date added", value=date.today())
 
@@ -1249,6 +1298,8 @@ def show_add_stock():
     if submitted:
         if not size.strip() or not brand.strip():
             st.error("Please enter tyre size and brand.")
+        elif buying_price is None or selling_price is None:
+            st.error("Please enter valid buying and selling prices before saving.")
         elif selling_price < buying_price:
             st.error("Selling price should not be less than buying price.")
         else:
@@ -1506,12 +1557,22 @@ def show_record_sale():
                 max_value=int(selected_row["quantity"]),
                 step=1,
             )
-            selling_price = col2.number_input(
-                "Selling price per tyre (₦)",
-                min_value=0.0,
-                value=float(selected_row["selling_price"]),
-                step=500.0,
+            selling_price_input = col2.text_input(
+                "Selling price per tyre",
+                value=format_naira(selected_row["selling_price"]),
+                key=f"selling_price_{selected_row['id']}",
             )
+            selling_price = parse_naira_input(selling_price_input)
+            if selling_price is None:
+                st.warning("Enter a valid selling price, for example 350000, 350,000, or ₦350,000.")
+            else:
+                line_total = selling_price * int(quantity_sold)
+                line_profit = line_total - (float(selected_row["buying_price"]) * int(quantity_sold))
+                st.caption(
+                    f"Selling price: {format_naira(selling_price)} | "
+                    f"Line total: {format_naira(line_total)} | "
+                    f"Line profit: {format_naira(line_profit)}"
+                )
 
             if st.button("Add Item to Sale"):
                 existing_quantity = sum(
@@ -1519,7 +1580,9 @@ def show_record_sale():
                     for item in st.session_state.sale_cart
                     if item["stock_id"] == int(selected_row["id"])
                 )
-                if existing_quantity + int(quantity_sold) > int(selected_row["quantity"]):
+                if selling_price is None:
+                    st.error("Please enter a valid selling price before adding this item.")
+                elif existing_quantity + int(quantity_sold) > int(selected_row["quantity"]):
                     st.error("Not enough stock available for this tyre item.")
                 else:
                     add_item_to_cart(selected_row, int(quantity_sold), float(selling_price))
@@ -1553,12 +1616,22 @@ def show_record_sale():
         col1, col2, col3 = st.columns(3)
         payment_date = col1.date_input("Payment date", value=date.today())
         payment_method = col2.selectbox("Payment method", PAYMENT_METHODS)
-        payment_amount = col3.number_input("Amount paid (₦)", min_value=0.0, step=500.0)
+        payment_amount_input = col3.text_input(
+            "Amount paid",
+            placeholder="Example: 50000, 50,000, or ₦50,000",
+        )
+        payment_amount = parse_naira_input(payment_amount_input)
+        if payment_amount is None:
+            st.warning("Enter a valid payment amount, for example 50000, 50,000, or ₦50,000.")
+        else:
+            st.caption(f"Amount paid: {format_naira(payment_amount)}")
         payment_note = st.text_input("Payment note / reference (optional)")
         add_payment_submitted = st.form_submit_button("Add Payment")
 
     if add_payment_submitted:
-        if payment_amount <= 0:
+        if payment_amount is None:
+            st.error("Please enter a valid payment amount.")
+        elif payment_amount <= 0:
             st.error("Enter an amount greater than zero.")
         else:
             add_payment_to_current_sale(payment_date, payment_method, float(payment_amount), payment_note)
@@ -2095,12 +2168,22 @@ def show_outstanding_balances():
         col1, col2, col3 = st.columns(3)
         later_payment_date = col1.date_input("New payment date", value=date.today())
         later_payment_method = col2.selectbox("New payment method", PAYMENT_METHODS)
-        later_payment_amount = col3.number_input("New payment amount (₦)", min_value=0.0, step=500.0)
+        later_payment_amount_input = col3.text_input(
+            "New payment amount",
+            placeholder="Example: 50000, 50,000, or ₦50,000",
+        )
+        later_payment_amount = parse_naira_input(later_payment_amount_input)
+        if later_payment_amount is None:
+            st.warning("Enter a valid payment amount, for example 50000, 50,000, or ₦50,000.")
+        else:
+            st.caption(f"New payment amount: {format_naira(later_payment_amount)}")
         later_payment_note = st.text_input("Payment note / reference")
         save_later_payment = st.form_submit_button("Save Payment")
 
     if save_later_payment:
-        if later_payment_amount <= 0:
+        if later_payment_amount is None:
+            st.error("Please enter a valid payment amount.")
+        elif later_payment_amount <= 0:
             st.error("Enter a payment amount greater than zero.")
         else:
             success, message = record_followup_payment(
