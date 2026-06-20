@@ -921,7 +921,7 @@ def save_sale_transaction(
 
         cursor.execute("UPDATE sales SET invoice_number = ? WHERE id = ?", (invoice_number, sale_id))
         conn.commit()
-        return True, f"Sale saved as {invoice_number}. Balance: NGN {balance:,.2f}."
+        return True, f"Sale saved as {invoice_number}. Balance: {format_naira(balance)}."
     except Exception as error:
         conn.rollback()
         return False, str(error)
@@ -1119,8 +1119,67 @@ def format_stock_label(row):
     )
 
 
+def format_naira(amount):
+    try:
+        value = float(amount or 0)
+    except (TypeError, ValueError):
+        value = 0
+    return f"₦{round(value):,}"
+
+
 def format_currency(amount):
-    return f"NGN {float(amount or 0):,.2f}"
+    return format_naira(amount)
+
+
+def format_money_text(value):
+    if pd.isna(value):
+        return value
+
+    def replace_match(match):
+        return format_naira(match.group(1).replace(",", ""))
+
+    return re.sub(r"NGN\s+([0-9,]+(?:\.[0-9]+)?)", replace_match, str(value))
+
+
+def format_money_dataframe(df):
+    if df.empty:
+        return df
+
+    money_columns = {
+        "buying_price",
+        "selling_price",
+        "Buying Price",
+        "Selling Price",
+        "Line Total",
+        "Line Cost",
+        "Line Profit",
+        "Total Amount",
+        "Amount Paid",
+        "Outstanding Balance",
+        "Profit",
+        "Total Cost",
+        "Total Profit",
+        "Running Total Paid",
+        "Remaining Balance",
+    }
+    money_text_columns = {
+        "Items Sold",
+        "Payment Methods Used",
+        "Payment History Summary",
+    }
+
+    display_df = df.copy()
+    for column in display_df.columns:
+        if column in money_columns:
+            display_df[column] = display_df[column].apply(format_naira)
+        elif column in money_text_columns:
+            display_df[column] = display_df[column].apply(format_money_text)
+
+    return display_df
+
+
+def show_money_dataframe(df, **kwargs):
+    st.dataframe(format_money_dataframe(df), **kwargs)
 
 
 def show_dashboard():
@@ -1168,7 +1227,7 @@ def show_dashboard():
         st.success("No low-stock items right now.")
     else:
         st.warning(f"These items have {LOW_STOCK_LIMIT} tyres or fewer left.")
-        st.dataframe(low_stock_df, width="stretch")
+        show_money_dataframe(low_stock_df, width="stretch")
 
 
 def show_add_stock():
@@ -1180,8 +1239,8 @@ def show_add_stock():
         pattern_model = st.text_input("Pattern / Model", placeholder="Example: AT115")
         condition = st.selectbox("Condition", ["New", "Used", "Retread"])
         quantity = st.number_input("Quantity", min_value=1, step=1)
-        buying_price = st.number_input("Buying price per tyre (NGN)", min_value=0.0, step=500.0)
-        selling_price = st.number_input("Selling price per tyre (NGN)", min_value=0.0, step=500.0)
+        buying_price = st.number_input("Buying price per tyre (₦)", min_value=0.0, step=500.0)
+        selling_price = st.number_input("Selling price per tyre (₦)", min_value=0.0, step=500.0)
         supplier = st.text_input("Supplier", placeholder="Example: Lagos Tyre Market")
         date_added = st.date_input("Date added", value=date.today())
 
@@ -1231,7 +1290,7 @@ def show_all_stock():
     if stock_df.empty:
         st.info("No stock has been added yet.")
     else:
-        st.dataframe(stock_df, width="stretch")
+        show_money_dataframe(stock_df, width="stretch")
         st.subheader("Delete Stock Item")
         st.warning("Deleting stock removes it from current stock only. Old sales reports keep their saved tyre details.")
 
@@ -1310,7 +1369,7 @@ def show_search():
     if results_df.empty:
         st.info("No tyres match your search.")
     else:
-        st.dataframe(results_df, width="stretch")
+        show_money_dataframe(results_df, width="stretch")
 
 
 def add_item_to_cart(stock_row, quantity_sold, selling_price):
@@ -1448,7 +1507,7 @@ def show_record_sale():
                 step=1,
             )
             selling_price = col2.number_input(
-                "Selling price per tyre (NGN)",
+                "Selling price per tyre (₦)",
                 min_value=0.0,
                 value=float(selected_row["selling_price"]),
                 step=500.0,
@@ -1472,7 +1531,7 @@ def show_record_sale():
     if cart_df.empty:
         st.info("No items added yet.")
     else:
-        st.dataframe(cart_df, width="stretch")
+        show_money_dataframe(cart_df, width="stretch")
         item_options = [
             f"{index + 1}. ID {item['stock_id']} | {item['brand']} | {item['pattern_model']} | {item['size']} x {item['quantity_sold']}"
             for index, item in enumerate(st.session_state.sale_cart)
@@ -1494,7 +1553,7 @@ def show_record_sale():
         col1, col2, col3 = st.columns(3)
         payment_date = col1.date_input("Payment date", value=date.today())
         payment_method = col2.selectbox("Payment method", PAYMENT_METHODS)
-        payment_amount = col3.number_input("Amount paid (NGN)", min_value=0.0, step=500.0)
+        payment_amount = col3.number_input("Amount paid (₦)", min_value=0.0, step=500.0)
         payment_note = st.text_input("Payment note / reference (optional)")
         add_payment_submitted = st.form_submit_button("Add Payment")
 
@@ -1510,7 +1569,7 @@ def show_record_sale():
     if payments_df.empty:
         st.info("No payment added yet. Leave empty for an unpaid sale.")
     else:
-        st.dataframe(payments_df, width="stretch")
+        show_money_dataframe(payments_df, width="stretch")
         payment_options = [
             f"{index + 1}. {payment['payment_date']} | {payment['payment_method']} | {format_currency(payment['amount_paid'])}"
             for index, payment in enumerate(st.session_state.sale_payments)
@@ -1587,7 +1646,7 @@ def show_record_sale():
     if recent_sales_df.empty:
         st.info("No sales have been recorded yet.")
     else:
-        st.dataframe(recent_sales_df, width="stretch")
+        show_money_dataframe(recent_sales_df, width="stretch")
 
 
 def get_sales_report_dataframe(limit=None, sale_status="Active"):
@@ -1934,7 +1993,7 @@ def show_payment_history(sale_id, label, allow_delete=False):
                 key=f"payment_history_search_{sale_id}",
             )
             visible_history_df = filter_dataframe_by_search(history_df, payment_search)
-            st.dataframe(visible_history_df.drop(columns=["Payment ID"]), width="stretch")
+            show_money_dataframe(visible_history_df.drop(columns=["Payment ID"]), width="stretch")
 
             if allow_delete:
                 st.subheader("Delete Wrong Payment")
@@ -2011,7 +2070,7 @@ def show_outstanding_balances():
         st.info("No outstanding balances match this filter.")
         return
 
-    st.dataframe(outstanding_df.drop(columns=["Sale ID"]), width="stretch")
+    show_money_dataframe(outstanding_df.drop(columns=["Sale ID"]), width="stretch")
 
     st.subheader("Record Balance Payment")
     sale_options = {}
@@ -2036,7 +2095,7 @@ def show_outstanding_balances():
         col1, col2, col3 = st.columns(3)
         later_payment_date = col1.date_input("New payment date", value=date.today())
         later_payment_method = col2.selectbox("New payment method", PAYMENT_METHODS)
-        later_payment_amount = col3.number_input("New payment amount (NGN)", min_value=0.0, step=500.0)
+        later_payment_amount = col3.number_input("New payment amount (₦)", min_value=0.0, step=500.0)
         later_payment_note = st.text_input("Payment note / reference")
         save_later_payment = st.form_submit_button("Save Payment")
 
@@ -2101,7 +2160,7 @@ def show_sales_report():
             st.info("No sales match this search or filter.")
         else:
             hidden_columns = ["Sale ID", "Sale Status", "Cancellation Reason", "Cancelled At"]
-            st.dataframe(filtered_sales_df.drop(columns=hidden_columns), width="stretch")
+            show_money_dataframe(filtered_sales_df.drop(columns=hidden_columns), width="stretch")
 
         st.subheader("Payment History")
         payment_history_df = get_all_payment_history_dataframe()
@@ -2113,7 +2172,7 @@ def show_sales_report():
         if visible_payment_history_df.empty:
             st.info("No payment records match this search.")
         else:
-            st.dataframe(visible_payment_history_df.drop(columns=["Payment ID", "Sale ID"]), width="stretch")
+            show_money_dataframe(visible_payment_history_df.drop(columns=["Payment ID", "Sale ID"]), width="stretch")
 
         invoice_options = {}
         sales_lookup_df = run_query(
@@ -2168,7 +2227,7 @@ def show_sales_report():
     if not cancelled_sales_df.empty:
         st.subheader("Cancelled Sales")
         st.caption("Cancelled sales are kept for audit only and do not count in dashboard totals, revenue, profit, or outstanding balances.")
-        st.dataframe(cancelled_sales_df.drop(columns=["Sale ID"]), width="stretch")
+        show_money_dataframe(cancelled_sales_df.drop(columns=["Sale ID"]), width="stretch")
 
 
 def main():
