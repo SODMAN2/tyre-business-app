@@ -16,6 +16,17 @@ LOW_STOCK_LIMIT = 5
 WALK_IN_CUSTOMER = "Walk-in Customer"
 REGULAR_CUSTOMER = "Regular Customer"
 PAYMENT_METHODS = ["Cash", "POS", "Bank Transfer", "Credit", "Other"]
+COMMON_TYRE_SIZES = [
+    "155 R12C", "165/80 R13", "185/70 R13", "185 R14C", "185/70 R14",
+    "195 R14C", "195/70 R14", "185/65 R15", "195 R15C", "195/65 R15",
+    "205/55 R16", "205/60 R16", "215/60 R16", "215/65 R16", "225/45 R17",
+    "225/50 R17", "225/55 R17", "235/45 R18", "245/45 R18", "265/70 R16",
+]
+COMMON_TYRE_BRANDS = [
+    "Austone", "Bridgestone", "Michelin", "Goodyear", "Dunlop", "Pirelli",
+    "Continental", "Hankook", "Maxxis", "Firestone", "Yokohama", "Apollo",
+    "MRF", "CEAT", "Linglong", "Triangle", "Double Coin", "Roadstone", "Westlake",
+]
 APP_NAME = "Tyre Stock Manager"
 APP_SUBTITLE = "Stock, Sales, Payments & Outstanding Balance Tracker"
 SUPPORT_EMAIL_SECRET = "SUPPORT_EMAIL"
@@ -258,21 +269,40 @@ def inject_app_styles():
         :root {
             --deep-green: #0f3d2e;
             --green: #176247;
+            --green-bright: #238461;
             --charcoal: #17211d;
             --cream: #fbfaf4;
             --soft-grey: #edf1ee;
             --mid-grey: #66756f;
             --gold: #c69c3d;
+            --gold-soft: #f5ead0;
             --danger: #b42318;
+            --surface: #ffffff;
+            --border: #dfe6e1;
         }
 
         .stApp {
-            background: linear-gradient(180deg, #fbfaf4 0%, #f3f6f2 48%, #ffffff 100%);
+            background:
+                radial-gradient(circle at 92% 2%, rgba(198, 156, 61, 0.09), transparent 24rem),
+                linear-gradient(180deg, #fbfaf4 0%, #f3f6f2 52%, #ffffff 100%);
             color: var(--charcoal);
         }
 
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #0f3d2e 0%, #13251f 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 14px 0 38px rgba(15, 61, 46, 0.11);
+        }
+
+        [data-testid="stSidebar"] > div:first-child {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.25) transparent;
+        }
+
+        [data-testid="stSidebar"] hr {
+            border-color: rgba(255,255,255,.14);
+            margin: 1.25rem 0;
         }
 
         [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
@@ -299,9 +329,9 @@ def inject_app_styles():
         }
 
         .block-container {
-            padding-top: 1.8rem;
+            padding-top: 2.15rem;
             padding-bottom: 3rem;
-            max-width: 1280px;
+            max-width: 1320px;
         }
 
         h1, h2, h3 {
@@ -427,26 +457,42 @@ def inject_app_styles():
         }
 
         div[data-testid="stForm"], div[data-testid="stExpander"] {
-            border: 1px solid #dfe6e1;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.82);
-            box-shadow: 0 8px 24px rgba(15, 61, 46, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 12px 32px rgba(15, 61, 46, 0.07);
+            padding: .35rem .55rem;
         }
 
         .app-hero {
-            border-radius: 18px;
-            padding: 1.35rem 1.45rem;
-            margin-bottom: 1.3rem;
-            background: linear-gradient(135deg, #0f3d2e 0%, #176247 72%, #c69c3d 180%);
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            padding: 2rem 2.15rem;
+            margin-bottom: 1.65rem;
+            background: linear-gradient(132deg, #0b3024 0%, #176247 68%, #88702e 155%);
             color: #ffffff;
-            box-shadow: 0 18px 45px rgba(15, 61, 46, 0.18);
+            box-shadow: 0 22px 55px rgba(15, 61, 46, 0.21);
+            border: 1px solid rgba(255,255,255,.12);
+        }
+
+        .app-hero::after {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            right: -75px;
+            top: -145px;
+            border-radius: 50%;
+            border: 42px solid rgba(255,255,255,.07);
         }
 
         .app-hero h1 {
             color: #ffffff;
-            font-size: 2rem;
-            margin: 0 0 0.25rem 0;
+            font-size: clamp(1.8rem, 3vw, 2.45rem);
+            margin: 0 0 0.45rem 0;
             line-height: 1.15;
+            font-weight: 850;
         }
 
         .app-hero p {
@@ -456,15 +502,16 @@ def inject_app_styles():
         }
 
         .sidebar-brand {
-            padding: 0.75rem 0 1rem 0;
+            padding: 1rem 0.2rem 1.25rem 0.2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.16);
-            margin-bottom: 1rem;
+            margin-bottom: 1.15rem;
         }
 
         .sidebar-brand .title {
-            font-size: 1.05rem;
+            font-size: 1.14rem;
             font-weight: 800;
             color: #ffffff;
+            line-height: 1.3;
         }
 
         .sidebar-brand .subtitle {
@@ -475,7 +522,9 @@ def inject_app_styles():
         }
 
         .section-title {
-            margin: 1.25rem 0 0.55rem 0;
+            margin: 1.65rem 0 0.75rem 0;
+            padding-left: .85rem;
+            border-left: 4px solid var(--gold);
         }
 
         .section-title h2 {
@@ -490,13 +539,34 @@ def inject_app_styles():
         }
 
         .metric-card {
+            position: relative;
+            overflow: hidden;
             background: #ffffff;
-            border: 1px solid #dfe6e1;
-            border-radius: 16px;
-            padding: 1rem 1.05rem;
-            min-height: 118px;
-            box-shadow: 0 10px 28px rgba(15, 61, 46, 0.07);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.2rem 1.25rem;
+            min-height: 142px;
+            box-shadow: 0 13px 34px rgba(15, 61, 46, 0.075);
             border-top: 4px solid var(--green);
+            transition: transform .16s ease, box-shadow .16s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 17px 38px rgba(15, 61, 46, 0.11);
+        }
+
+        .metric-icon {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            margin-bottom: .75rem;
+            background: #e8f3ee;
+            color: var(--deep-green);
+            font-size: 1.1rem;
+            font-weight: 900;
         }
 
         .metric-card.gold {
@@ -515,9 +585,9 @@ def inject_app_styles():
         }
 
         .metric-value {
-            margin-top: 0.4rem;
+            margin-top: 0.35rem;
             color: var(--charcoal);
-            font-size: 1.55rem;
+            font-size: clamp(1.35rem, 2.3vw, 1.75rem);
             font-weight: 850;
             line-height: 1.15;
             overflow-wrap: anywhere;
@@ -530,12 +600,13 @@ def inject_app_styles():
         }
 
         .preview-strip {
-            border-radius: 14px;
+            border-radius: 17px;
             border: 1px solid #dfe6e1;
-            background: #f8faf7;
-            padding: 0.85rem 1rem;
+            background: linear-gradient(135deg, #f8faf7, #fffdf7);
+            padding: 1rem 1.15rem;
             color: var(--charcoal);
-            margin: 0.35rem 0 0.8rem 0;
+            margin: 0.55rem 0 1rem 0;
+            box-shadow: 0 8px 22px rgba(15,61,46,.045);
         }
 
         .preview-strip strong {
@@ -543,16 +614,77 @@ def inject_app_styles():
         }
 
         .stButton > button, .stFormSubmitButton > button {
+            min-height: 2.75rem;
             border-radius: 12px;
-            border: 0;
-            background: var(--deep-green);
+            border: 1px solid #0f3d2e;
+            background: linear-gradient(180deg, #176247, #0f3d2e);
             color: #ffffff;
-            font-weight: 700;
+            font-weight: 750;
+            padding: .55rem 1.15rem;
+            box-shadow: 0 6px 14px rgba(15,61,46,.14);
         }
 
         .stButton > button:hover, .stFormSubmitButton > button:hover {
-            background: var(--green);
+            background: linear-gradient(180deg, #238461, #176247);
             color: #ffffff;
+            border-color: #176247;
+            transform: translateY(-1px);
+        }
+
+        [data-testid="stDownloadButton"] button {
+            background: #ffffff;
+            color: var(--deep-green);
+            border: 1px solid #b9ccc3;
+            box-shadow: none;
+        }
+
+        button[data-testid="stBaseButton-primary"] {
+            background: linear-gradient(180deg, #c43b30, #9f2219);
+            border-color: #8f1f17;
+            box-shadow: 0 6px 14px rgba(180,35,24,.18);
+        }
+
+        button[data-testid="stBaseButton-primary"]:hover {
+            background: linear-gradient(180deg, #d3483c, #b42318);
+            border-color: #9f2219;
+        }
+
+        [data-testid="stDataFrame"] {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 9px 25px rgba(15,61,46,.055);
+        }
+
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            gap: .45rem;
+            background: #e9efeb;
+            padding: .35rem;
+            border-radius: 14px;
+        }
+
+        [data-testid="stTabs"] button[role="tab"] {
+            border-radius: 10px;
+            padding: .65rem 1.2rem;
+            color: #44534d;
+            font-weight: 750;
+        }
+
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+            background: #ffffff;
+            color: var(--deep-green);
+            box-shadow: 0 3px 12px rgba(15,61,46,.1);
+        }
+
+        [data-testid="stAlert"] {
+            border-radius: 14px;
+            border-width: 1px;
+        }
+
+        @media (max-width: 700px) {
+            .block-container { padding: 1rem .8rem 2rem; }
+            .app-hero { padding: 1.45rem; border-radius: 19px; }
+            .metric-card { min-height: 126px; }
         }
         </style>
         """,
@@ -806,6 +938,72 @@ def login_user(email, password):
 
 def current_business_id():
     return st.session_state.get("business_id")
+
+
+def unique_suggestions(values, starter_values=()):
+    """Return clean suggestions in first-seen order, without case-insensitive duplicates."""
+    suggestions = []
+    seen = set()
+    for value in list(values) + list(starter_values):
+        clean_value = str(value or "").strip()
+        normalized = clean_value.casefold()
+        if clean_value and normalized not in seen:
+            seen.add(normalized)
+            suggestions.append(clean_value)
+    return suggestions
+
+
+def get_business_stock_suggestions():
+    """Only read suggestion values belonging to the signed-in business."""
+    rows = run_query(
+        """
+        SELECT size, brand, COALESCE(pattern_model, '') AS pattern_model,
+               COALESCE(supplier, '') AS supplier
+        FROM stock
+        WHERE business_id = ?
+        ORDER BY id DESC
+        """,
+        (current_business_id(),),
+    )
+    if rows.empty:
+        rows = pd.DataFrame(columns=["size", "brand", "pattern_model", "supplier"])
+    return {
+        "sizes": unique_suggestions(rows["size"].tolist(), COMMON_TYRE_SIZES),
+        "brands": unique_suggestions(rows["brand"].tolist(), COMMON_TYRE_BRANDS),
+        "patterns": unique_suggestions(rows["pattern_model"].tolist()),
+        "suppliers": unique_suggestions(rows["supplier"].tolist()),
+    }
+
+
+def get_business_customer_suggestions():
+    rows = run_query(
+        """
+        SELECT name, COALESCE(phone, '') AS phone
+        FROM customers
+        WHERE business_id = ?
+        ORDER BY id DESC
+        """,
+        (current_business_id(),),
+    )
+    if rows.empty:
+        return {"names": [], "phones": []}
+    return {
+        "names": unique_suggestions(rows["name"].tolist()),
+        "phones": unique_suggestions(rows["phone"].tolist()),
+    }
+
+
+def suggestion_input(label, options, key, placeholder="Type or choose a suggestion", **kwargs):
+    """A searchable Streamlit combobox that still accepts brand-new values."""
+    return st.selectbox(
+        label,
+        options,
+        index=None,
+        placeholder=placeholder,
+        accept_new_options=True,
+        key=key,
+        **kwargs,
+    ) or ""
 
 
 def require_login():
@@ -2254,10 +2452,25 @@ def render_section(title, subtitle=""):
 
 
 def render_metric_card(label, value, detail="", tone=""):
+    icon_map = {
+        "stock": "▦",
+        "sold": "✓",
+        "sales": "₦",
+        "profit": "↗",
+        "balance": "◷",
+        "low": "!",
+        "business": "◆",
+        "user": "●",
+        "status": "•",
+    }
+    label_lower = str(label).lower()
+    icon_key = next((key for key in icon_map if key in label_lower), "business")
+    icon = icon_map[icon_key]
     detail_html = f'<div class="metric-detail">{escape(str(detail))}</div>' if detail else ""
     st.markdown(
         f"""
         <div class="metric-card {escape(tone)}">
+            <div class="metric-icon">{escape(icon)}</div>
             <div class="metric-label">{escape(str(label))}</div>
             <div class="metric-value">{escape(str(value))}</div>
             {detail_html}
@@ -2361,21 +2574,17 @@ def show_dashboard():
     total_sales = int(sales_df["total_quantity"].sum()) if not sales_df.empty else 0
     total_sales_value = float(sales_df["total_amount"].sum()) if not sales_df.empty else 0.0
     total_profit = float(sales_df["total_profit"].sum()) if not sales_df.empty else 0.0
-    total_stock_value = (
-        float((stock_df["quantity"] * stock_df["selling_price"]).sum()) if not stock_df.empty else 0.0
-    )
     outstanding_balance = float(sales_df["balance"].sum()) if not sales_df.empty else 0.0
     low_stock_df = stock_df[stock_df["quantity"] <= low_stock_limit] if not stock_df.empty else stock_df
     low_stock_count = len(low_stock_df) if not low_stock_df.empty else 0
 
-    metric_cols = st.columns(4)
+    render_section("Business Overview", "The numbers that matter most for today’s stock and sales.")
+    metric_cols = st.columns(3)
     with metric_cols[0]:
         render_metric_card("Total Tyres In Stock", total_stock, "Available inventory")
     with metric_cols[1]:
-        render_metric_card("Total Stock Value", format_currency(total_stock_value), "Current stock at selling price")
-    with metric_cols[2]:
         render_metric_card("Total Tyres Sold", total_sales, "Active sales only")
-    with metric_cols[3]:
+    with metric_cols[2]:
         render_metric_card("Total Sales Value", format_currency(total_sales_value), "Active sales only", "gold")
 
     metric_cols = st.columns(3)
@@ -2396,14 +2605,31 @@ def show_dashboard():
 
 
 def show_add_stock():
-    render_page_header("Add Stock", "Add tyre inventory with clean pricing and stock value previews.")
+    render_page_header("Add Stock", "Build accurate inventory records in a simple, guided flow.")
+    suggestions = get_business_stock_suggestions()
 
     with st.form("add_stock_form"):
         render_section("Tyre Details", "Identify the tyre clearly for search, sale, and reporting.")
-        size = st.text_input("Tyre size", placeholder="Example: 205/55R16")
-        brand = st.text_input("Brand", placeholder="Example: Austone")
-        pattern_model = st.text_input("Pattern / Model", placeholder="Example: AT115")
-        condition = st.selectbox("Condition", ["New", "Used", "Retread"])
+        detail_col1, detail_col2 = st.columns(2)
+        size = detail_col1.selectbox(
+            "Tyre size", suggestions["sizes"], index=None,
+            placeholder="Type a size or choose a suggestion", accept_new_options=True,
+        ) or ""
+        brand = detail_col2.selectbox(
+            "Brand", suggestions["brands"], index=None,
+            placeholder="Type a brand or choose a suggestion", accept_new_options=True,
+        ) or ""
+        pattern_model = suggestion_input(
+            "Pattern / Model", suggestions["patterns"], "add_stock_pattern",
+            placeholder="Type a new model or choose an existing one",
+        )
+        condition = detail_col2.selectbox("Condition", ["New", "Used", "Retread"])
+
+        render_section("Supplier Details", "Keep supplier information business-specific and easy to reuse.")
+        supplier = suggestion_input(
+            "Supplier name", suggestions["suppliers"], "add_stock_supplier",
+            placeholder="Type a new supplier or choose an existing one",
+        )
 
         render_section("Pricing", "Enter prices naturally, with or without commas or the Naira sign.")
         buying_price_input = st.text_input(
@@ -2422,7 +2648,7 @@ def show_add_stock():
         if selling_price is None:
             st.warning("Enter a valid selling price, for example 360000, 360,000, or ₦360,000.")
 
-        render_section("Stock Quantity", "Set the quantity being added to inventory.")
+        render_section("Quantity / Notes", "Set the quantity and date for this inventory entry.")
         quantity = st.number_input("Quantity", min_value=1, step=1)
 
         if buying_price is not None and selling_price is not None:
@@ -2439,8 +2665,6 @@ def show_add_stock():
                 ]
             )
 
-        render_section("Supplier / Notes", "Keep supplier details attached to this stock entry.")
-        supplier = st.text_input("Supplier", placeholder="Example: Lagos Tyre Market")
         date_added = st.date_input("Date added", value=date.today())
 
         submitted = st.form_submit_button("Save Stock")
@@ -2536,9 +2760,14 @@ def show_low_stock_items():
     render_page_header("Low Stock Items", f"Tyres with {low_stock_limit} or fewer pieces left.")
 
     low_stock_df = get_low_stock_dataframe()
-    search_term = st.text_input(
+    suggestions = get_business_stock_suggestions()
+    search_term = suggestion_input(
         "Search low-stock tyres",
-        placeholder="Search by tyre size, brand, pattern/model, or condition",
+        unique_suggestions(
+            suggestions["sizes"] + suggestions["brands"] + suggestions["patterns"]
+        ),
+        "low_stock_search",
+        placeholder="Type or choose a size, brand, or pattern",
     )
     visible_df = filter_dataframe_by_search(low_stock_df, search_term)
 
@@ -2552,12 +2781,26 @@ def show_low_stock_items():
 
 def show_search():
     render_page_header("Search Tyres", "Quickly find tyres by size, brand, pattern, or condition.")
+    suggestions = get_business_stock_suggestions()
 
-    col1, col2, col3, col4 = st.columns(4)
-    size = col1.text_input("Search by size")
-    brand = col2.text_input("Search by brand")
-    pattern_model = col3.text_input("Search by pattern/model")
-    condition = col4.selectbox("Condition", ["Any", "New", "Used", "Retread"])
+    col1, col2, col3 = st.columns(3)
+    size = col1.selectbox(
+        "Search by size", suggestions["sizes"], index=None,
+        placeholder="Any size", accept_new_options=True,
+    ) or ""
+    brand = col2.selectbox(
+        "Search by brand", suggestions["brands"], index=None,
+        placeholder="Any brand", accept_new_options=True,
+    ) or ""
+    pattern_model = col3.selectbox(
+        "Search by pattern/model", suggestions["patterns"], index=None,
+        placeholder="Any pattern", accept_new_options=True,
+    ) or ""
+    condition = col1.selectbox("Condition", ["Any", "New", "Used", "Retread"])
+    supplier = col2.selectbox(
+        "Search by supplier", suggestions["suppliers"], index=None,
+        placeholder="Any supplier", accept_new_options=True,
+    ) or ""
 
     query = """
         SELECT
@@ -2592,12 +2835,17 @@ def show_search():
         query += " AND condition = ?"
         params.append(condition)
 
+    if supplier.strip():
+        query += " AND supplier LIKE ?"
+        params.append(f"%{supplier.strip()}%")
+
     query += " ORDER BY id DESC"
     results_df = run_query(query, params)
 
     if results_df.empty:
         st.info("No tyres match this search. Try a different size, brand, pattern, or condition.")
     else:
+        add_csv_download("Download search results CSV", results_df, "tyre-search-results.csv")
         show_money_dataframe(results_df, width="stretch")
 
 
@@ -2665,26 +2913,39 @@ def show_customer_fields(customer_type):
             """,
             (current_business_id(), REGULAR_CUSTOMER),
         )
-        customer_choices = ["New regular customer"]
+        customer_choices = []
         customer_lookup = {}
         for row in customers_df.itertuples(index=False):
-            label = f"{row.name} - {row.phone}" if row.phone else row.name
-            customer_choices.append(label)
-            customer_lookup[label] = row
+            customer_choices.append(row.name)
+            customer_lookup.setdefault(str(row.name).casefold(), row)
 
-        selected_customer = st.selectbox("Regular customer", customer_choices)
-        if selected_customer != "New regular customer":
-            selected = customer_lookup[selected_customer]
+        selected_customer = st.selectbox(
+            "Customer name",
+            unique_suggestions(customer_choices),
+            index=None,
+            placeholder="Type a new name or choose an existing customer",
+            accept_new_options=True,
+            key="sale_customer_name",
+        ) or ""
+        selected = customer_lookup.get(selected_customer.casefold())
+        if selected is not None:
             customer_name = selected.name or ""
             phone = selected.phone or ""
             address = selected.address or ""
             vehicle_type = selected.vehicle_type or ""
             notes = selected.notes or ""
+        else:
+            customer_name = selected_customer
 
-        render_widget_label("Customer name")
-        customer_name = st.text_input("Customer name", value=customer_name, label_visibility="collapsed")
-        render_widget_label("Phone number")
-        phone = st.text_input("Phone number", value=phone, label_visibility="collapsed")
+        phone_choices = unique_suggestions(customers_df["phone"].tolist())
+        phone = st.selectbox(
+            "Customer phone",
+            phone_choices,
+            index=phone_choices.index(phone) if phone in phone_choices else None,
+            placeholder="Type a new phone or choose an existing one",
+            accept_new_options=True,
+            key=f"sale_customer_phone_{selected_customer}",
+        ) or phone
         render_widget_label("Address / Location")
         address = st.text_input("Address / Location", value=address, label_visibility="collapsed")
         render_widget_label("Vehicle type")
@@ -2718,9 +2979,17 @@ def show_record_sale():
         stock_df["label"] = stock_df.apply(format_stock_label, axis=1)
 
         render_section("1. Select Tyre Items", "Search available stock and add items to the current sale.")
-        search_term = st.text_input(
+        stock_suggestions = get_business_stock_suggestions()
+        search_term = suggestion_input(
             "Search by brand, pattern / model, size, condition, or stock ID",
-            placeholder="Example: Austone, AT103, 315, 315/80R22.5, New, ID 2",
+            unique_suggestions(
+                stock_suggestions["sizes"]
+                + stock_suggestions["brands"]
+                + stock_suggestions["patterns"]
+                + ["New", "Used", "Retread"]
+            ),
+            "sale_stock_search",
+            placeholder="Type or choose a size, brand, pattern, or condition",
         )
         filtered_stock_df = stock_df.copy()
         if search_term.strip():
@@ -3356,6 +3625,7 @@ def show_payment_history(sale_id, label, allow_delete=False):
 
 def show_outstanding_balances():
     render_page_header("Outstanding Balances", "Track unpaid and part-paid invoices that need follow-up.")
+    customer_suggestions = get_business_customer_suggestions()
 
     render_widget_label("Filter outstanding balances")
     filter_option = st.radio(
@@ -3366,9 +3636,11 @@ def show_outstanding_balances():
     )
     outstanding_df = get_outstanding_balances_dataframe(filter_option)
     render_widget_label("Search outstanding balances")
-    search_term = st.text_input(
+    search_term = suggestion_input(
         "Search outstanding balances",
-        placeholder="Example: Austone, AT103, Sodiq, 080, 2026-06-25, INV-000001, Part Payment",
+        unique_suggestions(customer_suggestions["names"] + customer_suggestions["phones"]),
+        "outstanding_search",
+        placeholder="Type or choose a customer name or phone",
         label_visibility="collapsed",
     )
 
@@ -3479,9 +3751,12 @@ def show_sales_report():
     if sales_df.empty:
         st.info("No sales have been recorded yet.")
     else:
-        search_term = st.text_input(
+        customer_suggestions = get_business_customer_suggestions()
+        search_term = suggestion_input(
             "Search sales",
-            placeholder="Example: customer name, phone, INV-000001, Cash, Paid, Austone, AT103, 315/80R22.5",
+            unique_suggestions(customer_suggestions["names"] + customer_suggestions["phones"]),
+            "sales_report_search",
+            placeholder="Type or choose a customer name or phone",
         )
         col1, col2 = st.columns(2)
         status_filter = col1.selectbox("Payment status", ["Any", "Paid", "Part Payment", "Unpaid"])
@@ -3940,7 +4215,11 @@ def show_platform_businesses():
     if current_status == "active":
         confirm_suspend = st.checkbox("I understand this business will be unable to log in.")
         suspend_text = st.text_input("Type SUSPEND to confirm")
-        if st.button("Suspend Business", disabled=not confirm_suspend or suspend_text != "SUSPEND"):
+        if st.button(
+            "Suspend Business",
+            type="primary",
+            disabled=not confirm_suspend or suspend_text != "SUSPEND",
+        ):
             update_business_status(selected_business_id, "suspended")
             st.success("Business suspended.")
             st.rerun()
@@ -3967,6 +4246,7 @@ def show_platform_businesses():
     )
     if st.button(
         "Delete Business Account",
+        type="primary",
         disabled=not confirm_delete_business or delete_business_text != "DELETE",
     ):
         success, message = delete_business_account(selected_business_id)
